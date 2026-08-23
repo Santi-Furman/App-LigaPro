@@ -95,4 +95,10 @@ export const PLANTEL = [
     goles: 1,
     asistencias: 0,
   },
+  {
+    numero: 19,
+    nombre: "Luna Piñeiro",
+    posicion: "CM",
+    pj: 5,
+  },
 ];
