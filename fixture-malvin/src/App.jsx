@@ -7,6 +7,8 @@ import {
   saveJornadaResults,
   subscribeToPlayerStats,
   savePlayerStats,
+  savePrediction,
+  getPrediction,
 } from "./firestoreService";
 import { computeStandings } from "./utils/standings";
 import MisPartidos from "./components/MisPartidos";
@@ -112,7 +114,6 @@ function Plantel() {
 
   useEffect(() => {
     const unsubscribe = subscribeToPlayerStats(setFirebaseStats);
-
     return () => unsubscribe();
   }, []);
 
@@ -169,15 +170,7 @@ function Plantel() {
 
   return (
     <section className="plantel-section">
-      <div
-        className="section-heading"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "12px",
-        }}
-      >
+      <div className="section-heading">
         <div>
           <p className="section-eyebrow">SPORTIVO MALVIN</p>
           <h2>Plantel</h2>
@@ -186,32 +179,16 @@ function Plantel() {
         {!editing ? (
           <button
             onClick={() => setEditing(true)}
-            style={{
-              border: "none",
-              borderRadius: "8px",
-              padding: "9px 14px",
-              background: "var(--pitch)",
-              color: "#fff",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
+            className="edit-stats-btn"
           >
             ✏️ Editar
           </button>
         ) : (
-          <div style={{ display: "flex", gap: "6px" }}>
+          <div className="stats-actions">
             <button
               onClick={() => setEditing(false)}
               disabled={saving}
-              style={{
-                border: "1px solid var(--line)",
-                borderRadius: "8px",
-                padding: "9px 12px",
-                background: "#fff",
-                color: "var(--muted)",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+              className="cancel-stats-btn"
             >
               Cancelar
             </button>
@@ -219,15 +196,7 @@ function Plantel() {
             <button
               onClick={guardarEstadisticas}
               disabled={saving}
-              style={{
-                border: "none",
-                borderRadius: "8px",
-                padding: "9px 12px",
-                background: "var(--gold)",
-                color: "var(--pitch-dark)",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
+              className="save-stats-btn"
             >
               {saving ? "Guardando..." : "Guardar"}
             </button>
@@ -265,14 +234,7 @@ function Plantel() {
                       onChange={(e) =>
                         updateLocalStat(jugador, "goles", e.target.value)
                       }
-                      style={{
-                        width: "48px",
-                        textAlign: "center",
-                        border: "1px solid var(--line)",
-                        borderRadius: "6px",
-                        fontSize: "18px",
-                        fontWeight: 700,
-                      }}
+                      className="stat-input"
                     />
                   ) : (
                     <strong>{stats.goles}</strong>
@@ -293,14 +255,7 @@ function Plantel() {
                           e.target.value
                         )
                       }
-                      style={{
-                        width: "48px",
-                        textAlign: "center",
-                        border: "1px solid var(--line)",
-                        borderRadius: "6px",
-                        fontSize: "18px",
-                        fontWeight: 700,
-                      }}
+                      className="stat-input"
                     />
                   ) : (
                     <strong>{stats.asistencias}</strong>
@@ -317,14 +272,7 @@ function Plantel() {
                       onChange={(e) =>
                         updateLocalStat(jugador, "pj", e.target.value)
                       }
-                      style={{
-                        width: "48px",
-                        textAlign: "center",
-                        border: "1px solid var(--line)",
-                        borderRadius: "6px",
-                        fontSize: "18px",
-                        fontWeight: 700,
-                      }}
+                      className="stat-input"
                     />
                   ) : (
                     <strong>{stats.pj}</strong>
@@ -335,6 +283,174 @@ function Plantel() {
             </article>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+function Penca({ jornadas, mi }) {
+  const [jugador, setJugador] = useState("");
+  const [golesMalvin, setGolesMalvin] = useState("");
+  const [golesRival, setGolesRival] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [enviada, setEnviada] = useState(false);
+  const [error, setError] = useState("");
+
+  const proximo = useMemo(() => {
+    const partidos = [];
+
+    jornadas.forEach((jornada) => {
+      jornada.partidos.forEach((partido) => {
+        if (partido.includes(mi)) {
+          const [dia, mes, anio] = jornada.fecha.split("/").map(Number);
+
+          partidos.push({
+            jornada,
+            rival: partido[0] === mi ? partido[1] : partido[0],
+            fecha: new Date(anio, mes - 1, dia),
+            esLocal: partido[0] === mi,
+          });
+        }
+      });
+    });
+
+    return partidos
+      .filter((p) => p.fecha >= new Date())
+      .sort((a, b) => a.fecha - b.fecha)[0];
+  }, [jornadas, mi]);
+
+  useEffect(() => {
+    async function checkPrediction() {
+      if (!jugador || !proximo) return;
+
+      const prediction = await getPrediction(jugador);
+
+      if (
+        prediction &&
+        prediction.jornadaId === proximo.jornada.id
+      ) {
+        setEnviada(true);
+      }
+    }
+
+    checkPrediction();
+  }, [jugador, proximo]);
+
+  if (!proximo) return null;
+
+  async function enviarPrediccion(e) {
+    e.preventDefault();
+
+    if (!jugador) {
+      setError("Elegí tu nombre.");
+      return;
+    }
+
+    if (golesMalvin === "" || golesRival === "") {
+      setError("Completá los dos resultados.");
+      return;
+    }
+
+    setError("");
+    setEnviando(true);
+
+    try {
+      await savePrediction(jugador, {
+        local: Number(golesMalvin),
+        rival: Number(golesRival),
+        jornadaId: proximo.jornada.id,
+      });
+
+      setEnviada(true);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo guardar la predicción.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <section className="penca-section">
+      <div className="penca-header">
+        <p className="section-eyebrow">LA PENCA</p>
+        <h2>¿Cómo sale?</h2>
+        <p>
+          Tu predicción queda anónima. Después del partido vemos quién la
+          embocó.
+        </p>
+      </div>
+
+      <div className="penca-card">
+        <div className="penca-match">
+          <strong>{proximo.esLocal ? mi : proximo.rival}</strong>
+          <span>VS</span>
+          <strong>{proximo.esLocal ? proximo.rival : mi}</strong>
+        </div>
+
+        {enviada ? (
+          <div className="prediction-sent">
+            <div className="prediction-icon">🔒</div>
+            <h3>¡Predicción enviada!</h3>
+            <p>
+              Tu pronóstico quedó guardado de forma anónima.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={enviarPrediccion} className="penca-form">
+            <label>
+              ¿Quién sos?
+              <select
+                value={jugador}
+                onChange={(e) => setJugador(e.target.value)}
+              >
+                <option value="">Seleccionar jugador</option>
+
+                {PLANTEL.map((p) => (
+                  <option key={p.nombre} value={p.nombre}>
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="prediction-score">
+              <div>
+                <span>{proximo.esLocal ? mi : proximo.rival}</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={golesMalvin}
+                  onChange={(e) => setGolesMalvin(e.target.value)}
+                />
+              </div>
+
+              <span className="prediction-vs">-</span>
+
+              <div>
+                <span>{proximo.esLocal ? proximo.rival : mi}</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={golesRival}
+                  onChange={(e) => setGolesRival(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {error && <p className="penca-error">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={enviando}
+              className="penca-submit"
+            >
+              {enviando ? "Enviando..." : "🔒 Enviar predicción"}
+            </button>
+          </form>
+        )}
       </div>
     </section>
   );
@@ -444,6 +560,13 @@ export default function App() {
           </button>
 
           <button
+            className={`tab-btn ${activeTab === "penca" ? "active" : ""}`}
+            onClick={() => setActiveTab("penca")}
+          >
+            🎯 Penca
+          </button>
+
+          <button
             className={`tab-btn ${activeTab === "add" ? "active" : ""}`}
             onClick={() => setActiveTab("add")}
           >
@@ -469,6 +592,10 @@ export default function App() {
         )}
 
         {activeTab === "squad" && <Plantel />}
+
+        {activeTab === "penca" && (
+          <Penca jornadas={allJornadas} mi={MI} />
+        )}
 
         {activeTab === "add" && <AgregarJornada />}
       </main>

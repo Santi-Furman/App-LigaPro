@@ -86,3 +86,26 @@ export async function savePlayerStats(playerId, stats) {
     { merge: true }
   );
 }
+
+/* =========================
+   PENCA
+========================= */
+
+export async function savePrediction(playerId, prediction) {
+  const ref = doc(db, "predicciones", playerId);
+
+  await setDoc(ref, {
+    playerId,
+    local: prediction.local,
+    rival: prediction.rival,
+    jornadaId: prediction.jornadaId,
+    creadaEn: serverTimestamp(),
+  });
+}
+
+export async function getPrediction(playerId) {
+  const ref = doc(db, "predicciones", playerId);
+  const snap = await getDoc(ref);
+
+  return snap.exists() ? snap.data() : null;
+}
