@@ -340,3 +340,103 @@ footer{
   }
   .played-tick{ order: 3; }
 }
+/* Próximo partido */
+
+.next-match {
+  background: linear-gradient(135deg, var(--pitch) 0%, var(--pitch-dark) 100%);
+  color: #fff;
+  border-radius: 16px;
+  padding: 24px 20px;
+  margin: 24px 0 18px;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.next-match::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.025) 0 50px,
+    transparent 50px 100px
+  );
+  pointer-events: none;
+}
+
+.next-match > * {
+  position: relative;
+}
+
+.next-match-label {
+  color: var(--gold);
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  margin-bottom: 5px;
+}
+
+.next-match-jornada {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+
+.next-match-teams {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.next-match-vs {
+  color: var(--gold);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.next-match-teams .our-team {
+  color: #fff;
+}
+
+.next-match-date {
+  margin-top: 16px;
+  font-size: 14px;
+  text-transform: capitalize;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.next-match-countdown {
+  display: inline-block;
+  margin-top: 18px;
+  background: var(--gold);
+  color: var(--pitch-dark);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 480px) {
+  .next-match {
+    margin: 18px 0 14px;
+    padding: 22px 14px;
+  }
+
+  .next-match-teams {
+    font-size: 21px;
+    gap: 10px;
+  }
+
+  .next-match-vs {
+    font-size: 13px;
+  }
+}
