@@ -5,6 +5,8 @@ import {
   subscribeToAllResults,
   subscribeToExtraJornadas,
   saveJornadaResults,
+  subscribeToPlayerStats,
+  savePlayerStats,
 } from "./firestoreService";
 import { computeStandings } from "./utils/standings";
 import MisPartidos from "./components/MisPartidos";
@@ -104,50 +106,235 @@ function ProximoPartido({ jornadas, mi }) {
 }
 
 function Plantel() {
+  const [firebaseStats, setFirebaseStats] = useState({});
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPlayerStats(setFirebaseStats);
+
+    return () => unsubscribe();
+  }, []);
+
+  function getPlayerId(jugador) {
+    return jugador.nombre
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "-");
+  }
+
+  function getStats(jugador) {
+    const id = getPlayerId(jugador);
+    const saved = firebaseStats[id];
+
+    return {
+      pj: saved?.pj ?? jugador.pj,
+      goles: saved?.goles ?? jugador.goles,
+      asistencias: saved?.asistencias ?? jugador.asistencias,
+    };
+  }
+
+  function updateLocalStat(jugador, field, value) {
+    const id = getPlayerId(jugador);
+
+    setFirebaseStats((prev) => ({
+      ...prev,
+      [id]: {
+        ...getStats(jugador),
+        [field]: Math.max(0, Number(value) || 0),
+      },
+    }));
+  }
+
+  async function guardarEstadisticas() {
+    setSaving(true);
+
+    try {
+      for (const jugador of PLANTEL) {
+        const id = getPlayerId(jugador);
+        const stats = getStats(jugador);
+
+        await savePlayerStats(id, stats);
+      }
+
+      setEditing(false);
+    } catch (error) {
+      console.error("Error guardando estadísticas:", error);
+      alert("No se pudieron guardar las estadísticas.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <section className="plantel-section">
-      <div className="section-heading">
+      <div
+        className="section-heading"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
         <div>
           <p className="section-eyebrow">SPORTIVO MALVIN</p>
           <h2>Plantel</h2>
         </div>
+
+        {!editing ? (
+          <button
+            onClick={() => setEditing(true)}
+            style={{
+              border: "none",
+              borderRadius: "8px",
+              padding: "9px 14px",
+              background: "var(--pitch)",
+              color: "#fff",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            ✏️ Editar
+          </button>
+        ) : (
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button
+              onClick={() => setEditing(false)}
+              disabled={saving}
+              style={{
+                border: "1px solid var(--line)",
+                borderRadius: "8px",
+                padding: "9px 12px",
+                background: "#fff",
+                color: "var(--muted)",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Cancelar
+            </button>
+
+            <button
+              onClick={guardarEstadisticas}
+              disabled={saving}
+              style={{
+                border: "none",
+                borderRadius: "8px",
+                padding: "9px 12px",
+                background: "var(--gold)",
+                color: "var(--pitch-dark)",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {saving ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="plantel-grid">
-        {PLANTEL.map((jugador) => (
-          <article
-            className="player-card"
-            key={`${jugador.numero}-${jugador.nombre}`}
-          >
-            <div className="player-top">
-              <div className="player-number">
-                {jugador.numero ?? "—"}
+        {PLANTEL.map((jugador) => {
+          const stats = getStats(jugador);
+
+          return (
+            <article
+              className="player-card"
+              key={`${jugador.numero}-${jugador.nombre}`}
+            >
+              <div className="player-top">
+                <div className="player-number">
+                  {jugador.numero ?? "—"}
+                </div>
+
+                <div className="player-info">
+                  <h3>{jugador.nombre}</h3>
+                  <p>{jugador.posicion}</p>
+                </div>
               </div>
 
-              <div className="player-info">
-                <h3>{jugador.nombre}</h3>
-                <p>{jugador.posicion}</p>
-              </div>
-            </div>
+              <div className="player-stats">
+                <div className="player-stat">
+                  {editing ? (
+                    <input
+                      type="number"
+                      min="0"
+                      value={stats.goles}
+                      onChange={(e) =>
+                        updateLocalStat(jugador, "goles", e.target.value)
+                      }
+                      style={{
+                        width: "48px",
+                        textAlign: "center",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        fontSize: "18px",
+                        fontWeight: 700,
+                      }}
+                    />
+                  ) : (
+                    <strong>{stats.goles}</strong>
+                  )}
+                  <span>⚽ Goles</span>
+                </div>
 
-            <div className="player-stats">
-              <div className="player-stat">
-                <strong>{jugador.goles}</strong>
-                <span>⚽ Goles</span>
-              </div>
+                <div className="player-stat">
+                  {editing ? (
+                    <input
+                      type="number"
+                      min="0"
+                      value={stats.asistencias}
+                      onChange={(e) =>
+                        updateLocalStat(
+                          jugador,
+                          "asistencias",
+                          e.target.value
+                        )
+                      }
+                      style={{
+                        width: "48px",
+                        textAlign: "center",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        fontSize: "18px",
+                        fontWeight: 700,
+                      }}
+                    />
+                  ) : (
+                    <strong>{stats.asistencias}</strong>
+                  )}
+                  <span>🎯 Asist.</span>
+                </div>
 
-              <div className="player-stat">
-                <strong>{jugador.asistencias}</strong>
-                <span>🎯 Asist.</span>
+                <div className="player-stat">
+                  {editing ? (
+                    <input
+                      type="number"
+                      min="0"
+                      value={stats.pj}
+                      onChange={(e) =>
+                        updateLocalStat(jugador, "pj", e.target.value)
+                      }
+                      style={{
+                        width: "48px",
+                        textAlign: "center",
+                        border: "1px solid var(--line)",
+                        borderRadius: "6px",
+                        fontSize: "18px",
+                        fontWeight: 700,
+                      }}
+                    />
+                  ) : (
+                    <strong>{stats.pj}</strong>
+                  )}
+                  <span>👕 PJ</span>
+                </div>
               </div>
-
-              <div className="player-stat">
-                <strong>{jugador.pj}</strong>
-                <span>👕 PJ</span>
-              </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </section>
   );
