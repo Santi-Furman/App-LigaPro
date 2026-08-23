@@ -4,6 +4,7 @@ import {
   getDoc,
   setDoc,
   collection,
+  collectionGroup,
   onSnapshot,
   addDoc,
   orderBy,
@@ -92,7 +93,13 @@ export async function savePlayerStats(playerId, stats) {
 ========================= */
 
 export async function savePrediction(playerId, prediction) {
-  const ref = doc(db, "predicciones", playerId);
+  const ref = doc(
+    db,
+    "predicciones",
+    prediction.jornadaId,
+    "jugadores",
+    playerId
+  );
 
   await setDoc(ref, {
     playerId,
@@ -103,9 +110,29 @@ export async function savePrediction(playerId, prediction) {
   });
 }
 
-export async function getPrediction(playerId) {
-  const ref = doc(db, "predicciones", playerId);
+export async function getPrediction(playerId, jornadaId) {
+  const ref = doc(
+    db,
+    "predicciones",
+    jornadaId,
+    "jugadores",
+    playerId
+  );
+
   const snap = await getDoc(ref);
 
   return snap.exists() ? snap.data() : null;
+}
+
+export function subscribeToAllPredictions(callback) {
+  const ref = collectionGroup(db, "jugadores");
+
+  return onSnapshot(ref, (snap) => {
+    const predictions = snap.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    }));
+
+    callback(predictions);
+  });
 }
