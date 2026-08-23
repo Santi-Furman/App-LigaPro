@@ -1,17 +1,41 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
 
-:root{
+:root {
   color-scheme: light;
-  --pitch: #0e3b2e;
-  --pitch-dark: #0a2b21;
-  --line: #dfe6e0;
-  --gold: #d9a441;
-  --gold-dark: #a9781f;
-  --ink: #14211c;
-  --paper: #f6f4ee;
+
+  /* =========================
+     SPORTIVO MALVÍN
+  ========================= */
+
+  --pitch: #005baa;
+  --pitch-dark: #003b70;
+  --pitch-deep: #002b52;
+
+  --line: #dfe7ef;
+
+  --gold: #d5a928;
+  --gold-dark: #a98216;
+
+  --ink: #172536;
+  --paper: #f4f7fa;
   --card: #ffffff;
-  --muted: #6b7972;
-  --err: #b5541f;
+
+  --muted: #687787;
+
+  --err: #b54444;
+
+  /* Estados */
+  --success: #16845b;
+
+  /* Sombras */
+  --shadow-sm:
+    0 1px 3px rgba(0, 43, 82, 0.06);
+
+  --shadow-md:
+    0 5px 16px rgba(0, 43, 82, 0.10);
+
+  --shadow-lg:
+    0 12px 32px rgba(0, 43, 82, 0.14);
 }
 
 *{ box-sizing: border-box; }
