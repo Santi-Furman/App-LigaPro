@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { jornadas as JORNADAS_FIJAS, MI } from "./data/jornadas";
+import { PLANTEL } from "./data/plantel";
 import {
   subscribeToAllResults,
   subscribeToExtraJornadas,
@@ -102,6 +103,56 @@ function ProximoPartido({ jornadas, mi }) {
   );
 }
 
+function Plantel() {
+  return (
+    <section className="plantel-section">
+      <div className="section-heading">
+        <div>
+          <p className="section-eyebrow">SPORTIVO MALVIN</p>
+          <h2>Plantel</h2>
+        </div>
+      </div>
+
+      <div className="plantel-grid">
+        {PLANTEL.map((jugador) => (
+          <article
+            className="player-card"
+            key={`${jugador.numero}-${jugador.nombre}`}
+          >
+            <div className="player-top">
+              <div className="player-number">
+                {jugador.numero ?? "—"}
+              </div>
+
+              <div className="player-info">
+                <h3>{jugador.nombre}</h3>
+                <p>{jugador.posicion}</p>
+              </div>
+            </div>
+
+            <div className="player-stats">
+              <div className="player-stat">
+                <strong>{jugador.goles}</strong>
+                <span>⚽ Goles</span>
+              </div>
+
+              <div className="player-stat">
+                <strong>{jugador.asistencias}</strong>
+                <span>🎯 Asist.</span>
+              </div>
+
+              <div className="player-stat">
+                <strong>{jugador.pj}</strong>
+                <span>👕 PJ</span>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("mine");
   const [results, setResults] = useState({});
@@ -199,6 +250,13 @@ export default function App() {
           </button>
 
           <button
+            className={`tab-btn ${activeTab === "squad" ? "active" : ""}`}
+            onClick={() => setActiveTab("squad")}
+          >
+            Plantel
+          </button>
+
+          <button
             className={`tab-btn ${activeTab === "add" ? "active" : ""}`}
             onClick={() => setActiveTab("add")}
           >
@@ -222,6 +280,8 @@ export default function App() {
         {activeTab === "table" && (
           <Posiciones standings={standings} mi={MI} />
         )}
+
+        {activeTab === "squad" && <Plantel />}
 
         {activeTab === "add" && <AgregarJornada />}
       </main>
